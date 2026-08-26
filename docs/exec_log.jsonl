@@ -17,3 +17,5 @@
 {"at": "2026-08-26T16:19:09", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
 {"at": "2026-08-26T16:19:27", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
 {"at": "2026-08-26T16:24:12", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
+{"at": "2026-08-26T20:14:58", "command": "python -m pytest tests/test_kotak.py -x --tb=short -q", "verdict": "OK", "detail": "0.5s"}
+{"at": "2026-08-26T20:18:39", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
