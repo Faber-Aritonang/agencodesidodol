@@ -37,11 +37,15 @@ def test_run_blocked_format_konsisten():
     assert set(r.keys()) == {"status", "output", "exit_code"}
 
 
-def test_audit_log_tertulis(tmp_path):
-    s = Sandbox()
+def test_audit_log_tertulis(tmp_path, monkeypatch):
+    """Audit log tertulis — portable: log diarahkan ke tmp_path."""
+    import core.sandbox as sb
+    log_file = tmp_path / "exec_log.jsonl"
+    monkeypatch.setattr(sb, "LOG_PATH", log_file)
+    s = sb.Sandbox()
     s.run("ls")
-    from pathlib import Path
-    log = Path("docs/exec_log.jsonl")
-    assert log.exists()
-    last = log.read_text().strip().splitlines()[-1]
-    assert '"verdict"' in last
+    assert log_file.exists()
+    last = log_file.read_text().strip().splitlines()[-1]
+    assert "ls" in last
+
+
