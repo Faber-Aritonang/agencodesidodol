@@ -1,8 +1,10 @@
 """Tools inti DodolAgent: file ops, terminal aman, pencarian.
 Sandbox: timeout + blokir command berbahaya."""
 
-import shlex
-import subprocess
+from core.sandbox import Sandbox
+
+_sandbox = Sandbox()
+
 from pathlib import Path
 
 PROJECT_ROOT = Path.cwd()
@@ -28,24 +30,9 @@ def write_file(path: str, content: str) -> str:
     return f"OK: {path} ditulis ({len(content)} chars)"
 
 
-def run_terminal(command: str, timeout: int = 60) -> dict:
-    """Jalankan perintah via shell (dukung &&, |, redirect)."""
-    try:
-        proc = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-        status = "OK" if proc.returncode == 0 else f"EXIT {proc.returncode}"
-        return {
-            "status": status,
-            "output": (proc.stdout + proc.stderr).strip(),
-            "exit_code": proc.returncode,
-        }
-    except subprocess.TimeoutExpired:
-        return {"status": "TIMEOUT", "output": f"Perintah melebihi {timeout}s"}
+def run_terminal(command: str, timeout: int = None) -> dict:
+    """Jalankan perintah lewat sandbox (blacklist + whitelist + timeout + log)."""
+    return _sandbox.run(command, timeout=timeout)
 
 
 def code_search(pattern: str) -> list[str]:

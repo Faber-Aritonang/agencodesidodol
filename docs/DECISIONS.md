@@ -64,3 +64,8 @@ Parser harus strip fence dulu. Jangan andalkan find("{") saja.
 ## 15. Hard-stop budget butuh jalur keluar untuk done sah
 Jika tests_passed dan done=true datang saat budget habis,
 terima langsung. Jangan lewat gerbang tolak → loop bakar token.
+
+## 19. Satu DODOL_MODEL untuk semua provider = tabrakan namespace
+"qwen/qwen3.6-27b" (Groq) dikirim ke Ollama → 404 model not found.
+Fix: env var model per-provider (GROQ_MODEL, OLLAMA_MODEL, dst).
+Pelajaran: config global untuk resource lintas-sistem itu jebakan.

@@ -1,0 +1,4 @@
+{"at": "2026-08-26T12:50:27", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
+{"at": "2026-08-26T12:50:27", "command": "ls", "verdict": "OK", "detail": "0.0s"}
+{"at": "2026-08-26T15:06:20", "command": "ls /tmp/fake_test", "verdict": "EXIT 2", "detail": "0.0s"}
+{"at": "2026-08-26T15:07:02", "command": "python -m pytest tests/test_konversi.py -x --tb=short -q", "verdict": "OK", "detail": "0.5s"}

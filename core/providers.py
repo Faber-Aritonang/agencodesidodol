@@ -23,8 +23,13 @@ class LLMResponse:
 class BaseProvider(ABC):
     """Interface tunggal semua backend LLM."""
 
+    ENV_KEY = "DODOL_MODEL"   # override per-provider jika mau spesifik
+
     def __init__(self, model: str | None = None):
-        self.model = model or os.environ.get("DODOL_MODEL", "")
+        # prioritas: argumen > env khusus provider > default class
+        self.model = (model
+                      or os.environ.get(self.ENV_KEY, "").strip()
+                      or self.DEFAULT_MODEL)
         self.total_tokens = 0
 
     @abstractmethod
@@ -67,6 +72,7 @@ def _clean_key(env_name: str) -> str:
 # ────────────────────────── Groq ──────────────────────────
 
 class GroqProvider(BaseProvider):
+    ENV_KEY = "GROQ_MODEL"
     DEFAULT_MODEL = "qwen/qwen3.6-27b"
 
     def __init__(self, model: str | None = None):
@@ -88,6 +94,7 @@ class GroqProvider(BaseProvider):
 # ───────────────────────── Claude ─────────────────────────
 
 class ClaudeProvider(BaseProvider):
+    ENV_KEY = "ANTHROPIC_MODEL"
     DEFAULT_MODEL = "claude-haiku-4-5"   # termurah Anthropic
 
     def __init__(self, model: str | None = None):
@@ -110,6 +117,7 @@ class ClaudeProvider(BaseProvider):
 # ───────────────────────── OpenAI ─────────────────────────
 
 class OpenAIProvider(BaseProvider):
+    ENV_KEY = "OPENAI_MODEL"
     DEFAULT_MODEL = "gpt-4o-mini"
 
     def __init__(self, model: str | None = None):
@@ -131,6 +139,7 @@ class OpenAIProvider(BaseProvider):
 # ───────────────────────── Ollama (lokal) ─────────────────
 
 class OllamaProvider(BaseProvider):
+    ENV_KEY = "OLLAMA_MODEL"
     DEFAULT_MODEL = "qwen2.5-coder:7b"
     URL = "http://localhost:11434/api/chat"
 
