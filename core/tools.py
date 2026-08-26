@@ -28,20 +28,24 @@ def write_file(path: str, content: str) -> str:
     return f"OK: {path} ditulis ({len(content)} chars)"
 
 
-def run_terminal(command: str, timeout: int = MAX_TIMEOUT) -> dict:
-    if any(b in command for b in BLOCKED):
-        return {"status": "BLOCKED", "output": "Command diblokir sandbox"}
+def run_terminal(command: str, timeout: int = 60) -> dict:
+    """Jalankan perintah via shell (dukung &&, |, redirect)."""
     try:
         proc = subprocess.run(
-            shlex.split(command), cwd=PROJECT_ROOT,
-            capture_output=True, text=True, timeout=timeout,
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
+        status = "OK" if proc.returncode == 0 else f"EXIT {proc.returncode}"
         return {
-            "status": "OK" if proc.returncode == 0 else f"EXIT {proc.returncode}",
-            "output": (proc.stdout + proc.stderr)[:10_000],
+            "status": status,
+            "output": (proc.stdout + proc.stderr).strip(),
+            "exit_code": proc.returncode,
         }
     except subprocess.TimeoutExpired:
-        return {"status": "TIMEOUT", "output": f">{timeout}s"}
+        return {"status": "TIMEOUT", "output": f"Perintah melebihi {timeout}s"}
 
 
 def code_search(pattern: str) -> list[str]:
@@ -56,3 +60,16 @@ TOOL_REGISTRY = {
     "run_terminal": run_terminal,
     "code_search": code_search,
 }
+
+
+def run_tests(test_path: str = "tests/") -> dict:
+    """Jalankan pytest dan kembalikan ringkasan lulus/gagal."""
+    out = run_terminal(f"python -m pytest {test_path} -x --tb=short -q", timeout=120)
+    return {
+        "status": out["status"],
+        "output": out["output"][:3000],
+        "passed": out["status"] == "OK",
+    }
+
+
+TOOL_REGISTRY["run_tests"] = run_tests

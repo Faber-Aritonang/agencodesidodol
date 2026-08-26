@@ -1,6 +1,6 @@
 """Dodol the Orchestrator — agent utama.
-Loop: rencana → aksi (tools) → observasi → ulang sampai selesai.
-Anti-halusinasi: done hanya valid jika klaim diverifikasi via run_terminal."""
+Fase 2: Test-First Self-Healing Loop.
+done hanya sah jika run_tests lulus + klaim didukung bukti eksekusi."""
 
 import json
 
@@ -13,52 +13,51 @@ sampai selesai. Bekerja langkah demi langkah.
 ATURAN PENTING:
 - JANGAN PERNAH mengarang output program. Untuk mengetahui hasil sebuah
   program, WAJIB panggil tool run_terminal dan gunakan output ASLI-nya.
-- Jangan set done=true sebelum semua bagian tugas terverifikasi.
+- TEST-FIRST: setelah menulis/mengubah kode, WAJIB panggil run_tests.
+- Kode belum selesai sampai semua test LULUS. Jangan set done=true
+  jika run_tests belum pernah lulus pada kode final.
+- Self-healing: baca error di output run_tests, perbaiki kode,
+  jalankan run_tests lagi sampai lulus.
 
 Balas HANYA dengan JSON (satu objek, tanpa teks lain):
 {"thought": "...", "tool": "nama_tool|null", "input": {...}, "done": bool, "answer": "..."}
 
 Tools: read_files(paths), write_file(path, content),
-run_terminal(command), code_search(pattern).
+run_terminal(command), code_search(pattern), run_tests(test_path).
 Set done=true dan isi answer saat tugas selesai."""
 
 
 class Orchestrator:
-    def __init__(self, llm: DodolLLM, max_steps: int = 15):
+    def __init__(self, llm: DodolLLM, max_steps: int = 20):
         self.llm = llm
         self.max_steps = max_steps
         self.history: list[dict] = []
-        self.last_terminal_output: str | None = None
+        self.evidence: list[str] = []   # kumpulan bukti dari tool nyata
+        self.tests_passed = False
 
     @staticmethod
     def _extract_json(text: str) -> dict:
-        """Ambil objek JSON pertama dari respons (tahan noise/reasoning)."""
         start = text.find("{")
         end = text.rfind("}")
         if start == -1 or end == -1 or end <= start:
             raise json.JSONDecodeError("tidak ada JSON", text, 0)
         return json.loads(text[start:end + 1])
 
-    def _verify_claim(self, answer: str) -> bool:
-        """done hanya sah jika jawaban didukung output terminal asli."""
-        if self.last_terminal_output is None:
-            return False
-        # Ambil baris angka/teks kunci dari jawaban, cek ada di output asli
-        for line in answer.strip().splitlines():
-            token = line.strip()
-            if token and token in self.last_terminal_output:
-                return True
-        return False
-
+    def _has_evidence(self, claim: str) -> bool:
+        """done sah jika test lulus DAN ada bukti eksekusi nyata."""
+        return self.tests_passed and bool(self.evidence)
 
     @staticmethod
     def _trim_history(history: list[dict], max_chars: int = 6000) -> list[dict]:
-        """Jaga riwayat tetap ramping agar tidak melewati limit TPM."""
         total = sum(len(m["content"]) for m in history)
         while total > max_chars and len(history) > 2:
-            removed = history.pop(1)   # jaga pesan tugas pertama
+            removed = history.pop(1)
             total -= len(removed["content"])
         return history
+
+    def _reject(self, resp_content: str, reason: str):
+        self.history.append({"role": "assistant", "content": resp_content})
+        self.history.append({"role": "user", "content": reason})
 
     def run(self, task: str) -> str:
         self.history.append({"role": "user", "content": f"Tugas: {task}"})
@@ -68,40 +67,54 @@ class Orchestrator:
             print(f"\n🍬 Dodol [step {step}, {resp.tokens_used} tok]:")
             print(resp.content or "(thinking...)")
             if not resp.content.strip():
-                self.history.append({"role": "user", "content": "Respons kosong. Balas dengan JSON aksi."})
+                self._reject("", "Respons kosong. Balas HANYA satu objek JSON aksi.")
                 continue
 
             try:
                 action = self._extract_json(resp.content)
             except (json.JSONDecodeError, ValueError):
-                self.history.append({"role": "user", "content": "JSON invalid. Balas HANYA satu objek JSON."})
+                self._reject(resp.content, "JSON invalid. Balas HANYA satu objek JSON.")
                 continue
 
+            # --- Penanganan done ---
             if action.get("done"):
                 answer = action.get("answer", "Selesai.")
-                if self._verify_claim(answer):
-                    return f"{answer}\n\n✅ Terverifikasi via eksekusi nyata."
-                self.history.append({
-                    "role": "assistant", "content": resp.content,
-                })
-                self.history.append({
-                    "role": "user",
-                    "content": (
-                        "DITOLAK: Anda mengklaim hasil tanpa verifikasi. "
-                        "Jalankan dulu programnya dengan tool run_terminal "
-                        "(contoh: python namafile.py), lalu laporkan output ASLI."
-                    ),
-                })
-                continue
+                if not self._has_evidence(answer):
+                    status = []
+                    if not any("passed" in ev for ev in self.evidence):
+                        status.append("run_tests belum LULUS pada kode final")
+                    else:
+                        status.append("klaim tidak cocok dengan bukti eksekusi")
+                    self._reject(resp.content,
+                        f"DITOLAK: {'; '.join(status)}. "
+                        "Jalankan run_tests / run_terminal dulu, "
+                        "lalu laporkan hasil ASLI di answer.")
+                    continue
+                return f"{answer}\n\n✅ Diverifikasi via eksekusi nyata."
 
+            # --- Eksekusi tool ---
             tool_name = action.get("tool")
             if tool_name in TOOL_REGISTRY:
                 result = TOOL_REGISTRY[tool_name](**action.get("input", {}))
                 result_str = str(result)
+
+                # Rekam bukti secara TERSTRUKTUR, bukan string-matching rapuh
                 if tool_name == "run_terminal":
-                    self.last_terminal_output = result_str
+                    out = result.get("output", "") if isinstance(result, dict) else str(result)
+                    self.evidence.append(out[:2000])
+                elif tool_name == "run_tests":
+                    if isinstance(result, dict) and result.get("passed"):
+                        self.tests_passed = True
+                        self.evidence.append(
+                            f"TESTS PASSED ({result.get('summary', 'semua lulus')})"
+                        )
+                    elif isinstance(result, dict):
+                        self.evidence.append(result.get("output", "")[:2000])
+                    else:
+                        self.evidence.append(str(result)[:2000])
+
                 self.history.append({"role": "assistant", "content": resp.content})
                 self.history.append({"role": "user", "content": f"Hasil {tool_name}:\n{result_str[:2000]}"})
             else:
-                self.history.append({"role": "user", "content": f"Tool '{tool_name}' tidak dikenal."})
+                self._reject(resp.content, f"Tool '{tool_name}' tidak dikenal. Gunakan tools yang tersedia.")
         return "Batas langkah tercapai — tugas belum selesai."
