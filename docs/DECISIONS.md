@@ -102,3 +102,9 @@ kalau fix lupa di-commit ATAU patch menargetkan pola string yang
 tidak ada di file (fix OK: False tapi commit tetap jalan!).
 Proses aman: lihat file dulu (grep) → patch → test bersih tanpa
 __pycache__ → git diff --cached sebagai bukti isi commit → baru push.
+
+## 28. Chat interaktif memanggil cli.py via subprocess
+Alih-alih duplikasi loop agent, chat.py mendelegasikan task ke
+cli.py (mesin teruji). Keuntungan: satu sumber kebenaran; budget,
+sandbox, memory otomatis konsisten. Kontra: proses baru per task
+(overhead ~0.5s) — dapat dioptimalkan nanti dengan integrasi langsung.
