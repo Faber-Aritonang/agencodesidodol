@@ -3,6 +3,9 @@
 import os
 import time
 from dataclasses import dataclass
+from dotenv import load_dotenv
+load_dotenv()
+
 
 from groq import Groq
 
@@ -17,8 +20,8 @@ class DodolLLM:
     """Wrapper Groq dengan pelacakan token sederhana."""
 
     def __init__(self, model: str | None = None):
-        self.model = model or os.environ.get("DODOL_MODEL", "openai/gpt-oss-120b")
-        self.client = Groq(api_key=os.environ["GROQ_API_KEY"])
+        self.model = model or os.environ.get("DODOL_MODEL", "llama-3.3-70b-versatile")
+        self.client = Groq(api_key=os.environ["GROQ_API_KEY"].strip())
         self.total_tokens = 0
 
     def chat(self, system: str, messages: list[dict], temperature: float = 0.2) -> LLMResponse:

@@ -6,6 +6,7 @@ import json
 
 from core.groq_client import DodolLLM
 from core.tools import TOOL_REGISTRY
+from core.budget import TokenBudget
 
 SYSTEM_PROMPT = """Kamu adalah Dodol, AI coding agent yang lengket pada tugas
 sampai selesai. Bekerja langkah demi langkah.
@@ -28,12 +29,13 @@ Set done=true dan isi answer saat tugas selesai."""
 
 
 class Orchestrator:
-    def __init__(self, llm: DodolLLM, max_steps: int = 20):
+    def __init__(self, llm: DodolLLM, max_steps: int = 20, budget: int = 8000):
         self.llm = llm
         self.max_steps = max_steps
         self.history: list[dict] = []
         self.evidence: list[str] = []   # kumpulan bukti dari tool nyata
         self.tests_passed = False
+        self.budget = TokenBudget(budget)
 
     @staticmethod
     def _extract_json(text: str) -> dict:
@@ -63,8 +65,11 @@ class Orchestrator:
         self.history.append({"role": "user", "content": f"Tugas: {task}"})
         for step in range(1, self.max_steps + 1):
             history = self._trim_history(self.history)
+            # Info budget hidup: tempel sebagai konteks terakhir
+            history = history + [{"role": "user", "content": self.budget.guidance()}]
             resp = self.llm.chat(SYSTEM_PROMPT, history)
-            print(f"\n🍬 Dodol [step {step}, {resp.tokens_used} tok]:")
+            self.budget.spend(resp.tokens_used)
+            print(f"\n🍬 Dodol [step {step}, {resp.tokens_used} tok] {self.budget.meter()}")
             print(resp.content or "(thinking...)")
             if not resp.content.strip():
                 self._reject("", "Respons kosong. Balas HANYA satu objek JSON aksi.")
@@ -77,6 +82,10 @@ class Orchestrator:
                 continue
 
             # --- Penanganan done ---
+            if self.budget.exhausted and not action.get("done"):
+                return ("⏹️ Token budget habis. Progres terakhir:\n"
+                        f"{resp.content[:500]}")
+
             if action.get("done"):
                 answer = action.get("answer", "Selesai.")
                 if not self._has_evidence(answer):
