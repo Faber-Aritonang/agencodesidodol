@@ -1,5 +1,5 @@
 import pytest
-from konversi import celsius_ke_fahrenheit, km_ke_mil
+from konversi import celsius_ke_fahrenheit, km_ke_mil, fahrenheit_ke_celsius
 
 
 def test_celsius_ke_fahrenheit_0():
@@ -24,3 +24,15 @@ def test_km_ke_mil_1():
 
 def test_km_ke_mil_10():
     assert km_ke_mil(10) == pytest.approx(6.21371)
+
+
+def test_fahrenheit_ke_celsius_32():
+    assert fahrenheit_ke_celsius(32) == 0
+
+
+def test_fahrenheit_ke_celsius_212():
+    assert fahrenheit_ke_celsius(212) == 100
+
+
+def test_fahrenheit_ke_celsius_negatif():
+    assert fahrenheit_ke_celsius(-40) == -40

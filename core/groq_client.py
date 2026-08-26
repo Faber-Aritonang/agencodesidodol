@@ -21,7 +21,7 @@ class DodolLLM:
 
     def __init__(self, model: str | None = None):
         self.model = model or os.environ.get("DODOL_MODEL", "llama-3.3-70b-versatile")
-        self.client = Groq(api_key=os.environ["GROQ_API_KEY"].strip())
+        self.client = Groq(api_key=os.environ["GROQ_API_KEY"].strip().splitlines()[0].strip())
         self.total_tokens = 0
 
     def chat(self, system: str, messages: list[dict], temperature: float = 0.2) -> LLMResponse:

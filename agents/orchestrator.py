@@ -7,6 +7,7 @@ import json
 from core.groq_client import DodolLLM
 from core.tools import TOOL_REGISTRY
 from core.budget import TokenBudget
+from core.memory import ProjectMemory
 
 SYSTEM_PROMPT = """Kamu adalah Dodol, AI coding agent yang lengket pada tugas
 sampai selesai. Bekerja langkah demi langkah.
@@ -36,6 +37,7 @@ class Orchestrator:
         self.evidence: list[str] = []   # kumpulan bukti dari tool nyata
         self.tests_passed = False
         self.budget = TokenBudget(budget)
+        self.memory = ProjectMemory()
 
     @staticmethod
     def _extract_json(text: str) -> dict:
@@ -62,7 +64,9 @@ class Orchestrator:
         self.history.append({"role": "user", "content": reason})
 
     def run(self, task: str) -> str:
-        self.history.append({"role": "user", "content": f"Tugas: {task}"})
+        ctx = self.memory.context_block()
+        full_task = f"{task}\n\n{ctx}" if ctx else task
+        self.history.append({"role": "user", "content": f"Tugas: {full_task}"})
         for step in range(1, self.max_steps + 1):
             history = self._trim_history(self.history)
             # Info budget hidup: tempel sebagai konteks terakhir
@@ -99,6 +103,8 @@ class Orchestrator:
                         "Jalankan run_tests / run_terminal dulu, "
                         "lalu laporkan hasil ASLI di answer.")
                     continue
+                self.memory.note_task(task, answer)
+                self.memory.save()
                 return f"{answer}\n\n✅ Diverifikasi via eksekusi nyata."
 
             # --- Eksekusi tool ---
@@ -121,6 +127,14 @@ class Orchestrator:
                         self.evidence.append(result.get("output", "")[:2000])
                     else:
                         self.evidence.append(str(result)[:2000])
+
+                # Catat ke memori jangka panjang
+                if tool_name == "write_file":
+                    p = action.get("input", {}).get("path", "?")
+                    c = action.get("input", {}).get("content", "")
+                    self.memory.note_file(p, c)
+                elif tool_name == "run_tests" and isinstance(result, dict):
+                    self.memory.note_tests(result)
 
                 self.history.append({"role": "assistant", "content": resp.content})
                 self.history.append({"role": "user", "content": f"Hasil {tool_name}:\n{result_str[:2000]}"})
