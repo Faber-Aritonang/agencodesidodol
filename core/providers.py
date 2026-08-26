@@ -21,6 +21,7 @@ class LLMResponse:
 
 
 class BaseProvider(ABC):
+    DEFAULT_MODEL = ""   # default aman; subclass override
     """Interface tunggal semua backend LLM."""
 
     ENV_KEY = "DODOL_MODEL"   # override per-provider jika mau spesifik
