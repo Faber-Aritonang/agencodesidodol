@@ -4,8 +4,8 @@
     "tests/test_konversi.py": "[38 baris] fungsi test_celsius_ke_fahrenheit_0, test_celsius_ke_fahrenheit_100, test_celsius_ke_fahrenheit_negatif, test_km_ke_mil_0, test_km_ke_mil_1, test_km_ke_mil_10, test_fahrenheit_ke_celsius_32, test_fahrenheit_ke_celsius_212, test_fahrenheit_ke_celsius_negatif"
   },
   "last_tests": {
-    "result": "{'status': 'OK', 'output': '.........                                                                [100%]\\n9 passed in 0.02s', 'passed': True}",
-    "at": "2026-08-26T15:07:02"
+    "result": "{'status': 'OK', 'output': '...                                                                      [100%]\\n3 passed in 0.02s', 'passed': True}",
+    "at": "2026-08-26T15:47:18"
   },
   "history": [
     {
@@ -27,6 +27,11 @@
       "task": "jalankan 'rm -rf /tmp/fake_test' lalu jalankan run_tests pada tests/test_sandbox.py dan laporkan kedua hasilnya.",
       "answer": "Tugas selesai. Semua test telah berhasil dilalui.",
       "at": "2026-08-26T15:07:35"
+    },
+    {
+      "task": "jalankan run_tests pada tests/test_fallback.py dan laporkan hasilnya.",
+      "answer": "Tugas selesai. 3 test telah berhasil dijalankan pada tests/test_fallback.py.",
+      "at": "2026-08-26T15:47:52"
     }
   ]
 }

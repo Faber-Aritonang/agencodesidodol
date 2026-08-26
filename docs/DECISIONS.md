@@ -91,3 +91,7 @@ sebelum pindah → hang total. Failover = coba sekali per provider.
 ## 24. Override __init__ wajib panggil super().__init__()
 ResilientProvider menimpa constructor → total_tokens hilang.
 Test unit menangkapnya — nilai dari mengetes kode sendiri.
+
+## 25. CI minimal dulu: pytest + dotenv saja
+Runner bersih = deteksi dependency tersembunyi. Kalau CI hijau,
+berarti project bisa dipasang siapa pun dari clone fresh.
