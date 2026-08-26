@@ -1,15 +1,1 @@
-# 🍬 agencodesidodol
-
-> **Agent Code Si Dodol** — Sticky AI coding agent.
-> Menempel pada tugas sampai selesai. Privasi-first: tanpa iklan,
-> tanpa pelacakan prompt, API key milik sendiri.
-
-## Visi
-Coding agent multi-orkestrasi dengan pembeda:
-- 🧪 Test-First Self-Healing Loop
-- 📊 Project Memory lintas sesi
-- 🛡️ Security Auditor bawaan
-- 💰 Token Budget Controller
-
-## Status
-🚧 Fase 1 — fondasi orkestrasi
+# 🍬 Agent Code Si Dodol> Sticky AI coding agent. Menempel pada tugas sampai selesai.> Privasi-first: tanpa iklan, tanpa pelacakan, API key milik sendiri.## ✨ Fitur- 🧠 **Test-First Self-Healing Loop** — orchestrator JSON-aksi dengan eksekusi terverifikasi- 🧠 **Project Memory** — mengingat file, hasil test & riwayat task antar sesi (`docs/memory.json`)- 💰 **Token Budget Controller** — meteran live + hard-stop adaptif- 🛡️ **Sandbox Berlapis** — blacklist regex, whitelist opsional, timeout, audit log (`docs/exec_log.jsonl`)- 🔌 **Multi-Provider** — Groq / Claude / OpenAI / **Ollama lokal** (offline & gratis!), ganti via `DODOL_PROVIDER`## 🚀 Cara Pakai    pip install -r requirements.txt    cp .env.example .env   # isi API key / set DODOL_PROVIDER=ollama    python cli.py --budget 8000 "buat fungsi X beserta test-nya"## 📜 Keputusan Teknis20+ entri pelajaran debugging nyata (proxy env, namespace config,parser markdown-fence, rate-limit strategy) — lihat [docs/DECISIONS.md](docs/DECISIONS.md).## 📊 Status- ✅ Fase 1 — fondasi orkestrasi- ✅ Fase 2 — test-first self-healing loop- ✅ Fase 3 — budget controller adaptif- ✅ Fase 4 — project memory persisten- ✅ Fase 5 — multi-provider adapter- ✅ Fase 6 — sandbox keamanan berlapis + Ollama lokal
