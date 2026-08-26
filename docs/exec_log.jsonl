@@ -12,3 +12,4 @@
 {"at": "2026-08-26T16:00:33", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
 {"at": "2026-08-26T16:03:00", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
 {"at": "2026-08-26T16:03:26", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
+{"at": "2026-08-26T16:11:47", "command": "rm -rf /", "verdict": "BLOCKED", "detail": "DITOLAK sandbox: cocok pola berbahaya '\\brm\\b.*\\s-[a-z]*r[a-z]*f'. Gunakan cara yang lebih aman."}
