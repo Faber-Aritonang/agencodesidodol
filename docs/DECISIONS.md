@@ -47,3 +47,13 @@ API key dalam satu baris. Debug butuh beberapa iterasi.
 ## 11. load_dotenv() gagal di mode python3 - << EOF
 find_dotenv() butuh frame pemanggil. Pakai load_dotenv(".env")
 saat testing via stdin.
+
+## 12. Memory hanya disimpan di jalur sukses
+note_task + save() hanya setelah done sah. Tapi note_file/note_tests
+tercatat real-time saat tool dieksekusi — sehingga progres parsial
+tetap berguna walau run gagal (terbukti: fungsi tertulis saat run
+budget-habis tetap terdeteksi run berikutnya).
+
+## 13. Hard-stop budget harus di awal loop
+Cek budget SEBELUM panggil LLM. Sebaliknya: LLM diminta done,
+ditolak gerbang bukti, loop 17x membakar token sia-sia.
