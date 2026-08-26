@@ -33,3 +33,17 @@ Trade-off: sandbox lokal saja; produksi butuh whitelist perintah.
 ## 7. Pesan penolakan harus jelas & tidak ambigu
 Pesan DITOLAK yang menyebut syarat ganda membuat model menebak-nebak
 dan menjalankan tool yang sama berulang kali. Satu alasan spesifik per penolakan.
+
+## 9. Model harus kompatibel dengan protokol agent
+- llama-3.3-70b-versatile sudah tidak ada di Groq → 404.
+  Selalu cek daftar model via API sebelum hardcode.
+- gpt-oss memancarkan tool-call internal meski tanpa schema
+  tools → Groq 400. Llama/Qwen aman untuk JSON parsing manual.
+
+## 10. Selalu verifikasi .env dengan cat -A
+Append tanpa \n membuat DODOL_MODEL ketempel di belakang
+API key dalam satu baris. Debug butuh beberapa iterasi.
+
+## 11. load_dotenv() gagal di mode python3 - << EOF
+find_dotenv() butuh frame pemanggil. Pakai load_dotenv(".env")
+saat testing via stdin.
