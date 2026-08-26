@@ -19,3 +19,17 @@ Ini fondasi fitur Token Budget Controller.
 ## 4. JSON diekstrak robust (_extract_json)
 Model reasoning membungkus output dengan .
 Kami ambil objek {...} pertama/terakhir daripada json.loads mentah.
+
+## 5. Verifikasi state agent harus berbasis nilai, bukan string matching
+Bug: mencocokkan '"passed": True' pada repr() dict Python gagal karena
+Python memakai kutip tunggal ('passed': True). Agent masuk loop tanpa akhir.
+Fix: rekam bukti secara TERSTRUKTUR saat tool dieksekusi (flag tests_passed),
+bukan parse ulang representasi string.
+
+## 6. run_terminal wajib shell=True untuk perintah compound
+LLM sering menghasilkan "cd x && python y". Tanpa shell=True → FileNotFoundError.
+Trade-off: sandbox lokal saja; produksi butuh whitelist perintah.
+
+## 7. Pesan penolakan harus jelas & tidak ambigu
+Pesan DITOLAK yang menyebut syarat ganda membuat model menebak-nebak
+dan menjalankan tool yang sama berulang kali. Satu alasan spesifik per penolakan.
