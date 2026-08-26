@@ -69,3 +69,13 @@ terima langsung. Jangan lewat gerbang tolak → loop bakar token.
 "qwen/qwen3.6-27b" (Groq) dikirim ke Ollama → 404 model not found.
 Fix: env var model per-provider (GROQ_MODEL, OLLAMA_MODEL, dst).
 Pelajaran: config global untuk resource lintas-sistem itu jebakan.
+
+## 18-19. Dua bug provider Ollama
+a) requests mengikuti HTTP_PROXY env → localhost ikut ter-proxy.
+b) Satu DODOL_MODEL lintas-provider = tabrakan namespace
+   ("qwen/qwen3.6-27b" dikirim ke Ollama → 404).
+Fix: proxies=None internal + env var model per-provider.
+
+## 20. Model lokal 7b: hemat tapi kurang presisi instruksi
+Trade-off nyata lokal vs API. Parser anti-fence & gerbang bukti
+Dodol tetap menahannya — arsitektur agent menyelamatkan LLM lemah.
