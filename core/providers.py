@@ -159,6 +159,47 @@ class OllamaProvider(BaseProvider):
         return (d.get("message", {}).get("content", ""), tok)
 
 
+class ResilientProvider(BaseProvider):
+    """Wrapper failover: coba provider utama, gagal → pindah cadangan.
+
+    Hanya menangkap error transient (rate limit/koneksi) — error logis
+    (key salah, model tidak ada) tetap dilempar agar terlihat.
+    """
+
+    def __init__(self, chain: list[BaseProvider]):
+        super().__init__()          # warisi total_tokens & infrastruktur base
+        self.chain = chain
+        self.active = chain[0]
+        self.model = self.active.model
+
+    def _create(self, system, messages, temperature):
+        return self.active._create(system, messages, temperature)
+
+    def _create_with_retry(self, system, messages, temperature,
+                           max_attempts: int = 3):
+        for idx, prov in enumerate(self.chain):
+            self.active = prov
+            try:
+                # satu percobaan langsung per provider — TANPA retry
+                # internal (retry 60s hanya relevan utk provider aktif,
+                # bukan saat failover berantai)
+                content, tokens = prov._create(system, messages, temperature)
+                if idx > 0:
+                    print(f"🔀 Fallback ke {type(prov).__name__} — sukses")
+                return content, tokens
+            except Exception as e:
+                err = str(e).lower()
+                transient = any(k in err for k in
+                                ("rate_limit", "429", "connection",
+                                 "timeout", "overloaded"))
+                last = idx == len(self.chain) - 1
+                if transient and not last:
+                    print(f"⚠️ {type(prov).__name__} gagal ({err[:80]}) "
+                          f"→ mencoba fallback...")
+                    continue
+                raise
+
+
 PROVIDERS: dict[str, type] = {
     "groq": GroqProvider,
     "claude": ClaudeProvider,
@@ -169,11 +210,19 @@ PROVIDERS: dict[str, type] = {
 
 
 def make_provider(model: str | None = None) -> BaseProvider:
-    """Factory: pilih provider dari DODOL_PROVIDER di .env."""
+    """Factory: pilih provider dari DODOL_PROVIDER (+ fallback opsional)."""
     name = os.environ.get("DODOL_PROVIDER", "groq").lower().strip()
     cls = PROVIDERS.get(name)
     if cls is None:
         raise ValueError(f"DODOL_PROVIDER='{name}' tidak dikenal. "
                          f"Pilihan: {', '.join(PROVIDERS)}")
-    print(f"🔌 Provider: {name} | Model: {model or cls.DEFAULT_MODEL}")
-    return cls(model)
+    primary = cls(model)
+    print(f"🔌 Provider: {name} | Model: {primary.model}")
+
+    fb_name = os.environ.get("DODOL_FALLBACK", "").lower().strip()
+    if fb_name and fb_name != name:
+        fb_cls = PROVIDERS.get(fb_name)
+        if fb_cls is not None:
+            print(f"🛟 Fallback siap: {fb_name}")
+            return ResilientProvider([primary, fb_cls(model)])
+    return primary

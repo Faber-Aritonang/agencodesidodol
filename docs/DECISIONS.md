@@ -83,3 +83,11 @@ Dodol tetap menahannya — arsitektur agent menyelamatkan LLM lemah.
 ## 21. pytest binary vs python -m pytest: beda sys.path
 Agent harus diarahkan selalu pakai `python -m pytest`.
 conftest.py dgn sys.path.insert adalah jaring pengaman.
+
+## 23. Failover tidak boleh menumpuk retry internal
+super()._create_with_retry() di chain = 3x60s per provider mati
+sebelum pindah → hang total. Failover = coba sekali per provider.
+
+## 24. Override __init__ wajib panggil super().__init__()
+ResilientProvider menimpa constructor → total_tokens hilang.
+Test unit menangkapnya — nilai dari mengetes kode sendiri.
