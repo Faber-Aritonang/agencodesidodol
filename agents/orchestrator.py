@@ -41,6 +41,15 @@ class Orchestrator:
 
     @staticmethod
     def _extract_json(text: str) -> dict:
+        # buang markdown fence bila ada
+        if "```" in text:
+            for part in text.split("```"):
+                part = part.strip()
+                if part.startswith("json"):
+                    part = part[4:].strip()
+                if part.startswith("{"):
+                    text = part
+                    break
         start = text.find("{")
         end = text.rfind("}")
         if start == -1 or end == -1 or end <= start:
@@ -92,6 +101,8 @@ class Orchestrator:
 
             if action.get("done"):
                 answer = action.get("answer", "Selesai.")
+                if self.budget.exhausted and self.tests_passed:
+                    return f"{answer}\n\n✅ Diverifikasi via eksekusi nyata.\n⏹️ (budget habis saat penutupan)"
                 if not self._has_evidence(answer):
                     status = []
                     if not any("passed" in ev for ev in self.evidence):

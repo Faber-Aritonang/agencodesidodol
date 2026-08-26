@@ -57,3 +57,10 @@ budget-habis tetap terdeteksi run berikutnya).
 ## 13. Hard-stop budget harus di awal loop
 Cek budget SEBELUM panggil LLM. Sebaliknya: LLM diminta done,
 ditolak gerbang bukti, loop 17x membakar token sia-sia.
+
+## 14. LLM sering membungkus JSON dalam ```json fence
+Parser harus strip fence dulu. Jangan andalkan find("{") saja.
+
+## 15. Hard-stop budget butuh jalur keluar untuk done sah
+Jika tests_passed dan done=true datang saat budget habis,
+terima langsung. Jangan lewat gerbang tolak → loop bakar token.
