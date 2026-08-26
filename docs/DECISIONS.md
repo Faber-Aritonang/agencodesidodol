@@ -95,3 +95,10 @@ Test unit menangkapnya — nilai dari mengetes kode sendiri.
 ## 25. CI minimal dulu: pytest + dotenv saja
 Runner bersih = deteksi dependency tersembunyi. Kalau CI hijau,
 berarti project bisa dipasang siapa pun dari clone fresh.
+
+## 26. "Hijau di laptop" ≠ hijau di CI
+CI menguji hasil git clone, bukan folder kerja. Bug hantu muncul
+kalau fix lupa di-commit ATAU patch menargetkan pola string yang
+tidak ada di file (fix OK: False tapi commit tetap jalan!).
+Proses aman: lihat file dulu (grep) → patch → test bersih tanpa
+__pycache__ → git diff --cached sebagai bukti isi commit → baru push.
