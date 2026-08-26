@@ -79,3 +79,7 @@ Fix: proxies=None internal + env var model per-provider.
 ## 20. Model lokal 7b: hemat tapi kurang presisi instruksi
 Trade-off nyata lokal vs API. Parser anti-fence & gerbang bukti
 Dodol tetap menahannya — arsitektur agent menyelamatkan LLM lemah.
+
+## 21. pytest binary vs python -m pytest: beda sys.path
+Agent harus diarahkan selalu pakai `python -m pytest`.
+conftest.py dgn sys.path.insert adalah jaring pengaman.
