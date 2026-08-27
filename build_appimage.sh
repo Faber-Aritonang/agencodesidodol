@@ -134,7 +134,7 @@ ln -sf dodol-agent.svg "${APPDIR}/.DirIcon" 2>/dev/null || true
 
 # ─── 10. Build AppImage ───
 echo "🔨 Building AppImage..."
-OUTPUT="${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+OUTPUT="${APP_NAME}.AppImage"
 
 ARCH=${ARCH} "${APPIMAGETOOL}" "${APPDIR}" "${OUTPUT}" 2>&1 | tail -5
 
