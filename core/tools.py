@@ -1,6 +1,8 @@
 """Tools inti DodolAgent: file ops, terminal aman, pencarian.
 Sandbox: timeout + blokir command berbahaya."""
 
+import shlex
+
 from core.sandbox import Sandbox
 
 _sandbox = Sandbox()
@@ -8,7 +10,6 @@ _sandbox = Sandbox()
 from pathlib import Path
 
 PROJECT_ROOT = Path.cwd()
-BLOCKED = {"rm -rf /", "mkfs", "dd if=", ":(){:|:&};:"}
 MAX_TIMEOUT = 60
 
 

@@ -70,7 +70,6 @@ class Sandbox:
                 return False, (f"DITOLAK sandbox: cocok pola berbahaya '{pat}'. "
                                f"Gunakan cara yang lebih aman.")
         if self.strict:
-            first_word = command.strip().split()[0] if command.strip() else ""
             allowed = any(command.startswith(w) for w in self.whitelist)
             if not allowed:
                 return False, (f"DITOLAK sandbox (mode ketat): perintah harus "
