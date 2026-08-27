@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Dodol candy icon -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513"/>
+      <stop offset="100%" style="stop-color:#D2691E"/>
+    </linearGradient>
+  </defs>
+  <!-- Candy body -->
+  <rect x="20" y="35" width="88" height="58" rx="12" fill="url(#grad)"/>
+  <!-- Candy wrapper left -->
+  <polygon points="20,45 5,30 5,100 20,85" fill="#CD853F"/>
+  <!-- Candy wrapper right -->
+  <polygon points="108,45 123,30 123,100 108,85" fill="#CD853F"/>
+  <!-- Face -->
+  <circle cx="48" cy="60" r="5" fill="#FFF"/>
+  <circle cx="80" cy="60" r="5" fill="#FFF"/>
+  <circle cx="48" cy="60" r="2.5" fill="#333"/>
+  <circle cx="80" cy="60" r="2.5" fill="#333"/>
+  <!-- Smile -->
+  <path d="M 50 75 Q 64 88 78 75" stroke="#FFF" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Sparkle -->
+  <circle cx="95" cy="42" r="3" fill="#FFD700"/>
+  <circle cx="33" cy="42" r="2" fill="#FFD700"/>
+</svg>

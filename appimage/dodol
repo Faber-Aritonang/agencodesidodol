@@ -1,0 +1,17 @@
+#!/bin/bash
+# Dodol Agent — AppImage entry point
+# Menjalankan chat.py dari directory AppImage
+
+APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+export PYTHONPATH="${APPDIR}/usr/lib/python3.12/site-packages:${APPDIR}/opt/dodol-agent"
+
+cd "${APPDIR}/opt/dodol-agent"
+
+# Load .env jika ada
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
+exec python3 chat.py "$@"

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Dodol Agent
+Comment=Sticky AI coding agent — menempel pada tugas sampai selesai
+Exec=dodol
+Icon=dodol-agent
+Terminal=true
+Categories=Development;IDE;
+Keywords=ai;coding;agent;python;
+StartupNotify=false
