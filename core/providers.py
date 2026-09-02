@@ -2,7 +2,7 @@
 
 Semua provider mengembalikan LLMResponse yang sama, sehingga
 orchestrator tidak perlu tahu backend mana yang dipakai.
-Pilih via .env: DODOL_PROVIDER=groq|claude|openai|ollama
+Pilih via .env: DODOL_PROVIDER=groq|claude|openai|nararouter|ollama
 """
 
 import os
@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
 
 @dataclass
@@ -77,7 +77,7 @@ class GroqProvider(BaseProvider):
     DEFAULT_MODEL = "qwen/qwen3.6-27b"
 
     def __init__(self, model: str | None = None):
-        super().__init__(model or self.DEFAULT_MODEL)
+        super().__init__(model)
         from groq import Groq
         self.client = Groq(api_key=_clean_key("GROQ_API_KEY"))
 
@@ -99,7 +99,7 @@ class ClaudeProvider(BaseProvider):
     DEFAULT_MODEL = "claude-haiku-4-5"   # termurah Anthropic
 
     def __init__(self, model: str | None = None):
-        super().__init__(model or self.DEFAULT_MODEL)
+        super().__init__(model)
         import anthropic
         self.client = anthropic.Anthropic(api_key=_clean_key("ANTHROPIC_API_KEY"))
 
@@ -122,7 +122,7 @@ class OpenAIProvider(BaseProvider):
     DEFAULT_MODEL = "gpt-4o-mini"
 
     def __init__(self, model: str | None = None):
-        super().__init__(model or self.DEFAULT_MODEL)
+        super().__init__(model)
         from openai import OpenAI
         self.client = OpenAI(api_key=_clean_key("OPENAI_API_KEY"))
 
@@ -133,6 +133,69 @@ class OpenAIProvider(BaseProvider):
             temperature=temperature,
             max_tokens=2048,
         )
+        return (resp.choices[0].message.content or "",
+                resp.usage.total_tokens)
+
+
+# ───────────────────────── NaraRouter ─────────────────────────
+
+class NaraRouterProvider(BaseProvider):
+    """NaraRouter — OpenAI-compatible gateway (router.bynara.id).
+
+    Base URL  : https://router.bynara.id/v1
+    Auth      : Bearer sk-nry-xxxxx
+    Endpoint  : POST /v1/chat/completions
+    Streaming : supported (stream=True)
+    Reasoning : supported (reasoning_effort: low|medium|high)
+
+    Popular free/cheap model aliases:
+      deepseek-v4-flash-free  — Mocin tier, Rp157/1M input
+      deepseek-v4-flash       — Mocin tier, Rp2.280/1M input
+      qwen3.8-flash           — Mocin tier, Rp799/1M input
+      gpt-5.6-luna            — Mocin tier, Rp357/1M input
+      kimi-k3                 — Mocin tier, Rp43.100/1M input
+      qwen3.7-flash           — Mocin tier, Rp372/1M input
+      mistral-large           — Mocin tier, Rp887/1M input
+
+    Combo model fallback: combo/<name> (auto-failover between models)
+    Rate limits: Free=15 req/min, Freemium=50 req/min, FreeMiumMax=60 req/min
+    Daily token bucket: 5M free, per-tier buckets for paid (Dasar 60M, Mocin 70M, etc)
+    """
+    ENV_KEY = "NARAROUTER_MODEL"
+    DEFAULT_MODEL = "deepseek-v4-flash-free"
+    BASE_URL = "https://router.bynara.id/v1"
+
+    # Reasoning-capable model aliases (supports reasoning_effort param)
+    REASONING_MODELS = {
+        "deepseek-v4-pro", "deepseek-v4-pro-0813-bynara",
+        "gpt-5.5-pro", "gpt-5.4-lite",
+        "kimi-k3", "kimi-k3-bynara",
+        "qwen3.8-max", "qwen3.7-max", "qwen-3.7-max",
+        "glm-5.2", "glm-5.3",
+        "grok-4.6", "muse-spark-1.1", "muse-spark-1.2",
+    }
+
+    def __init__(self, model: str | None = None):
+        super().__init__(model)
+        from openai import OpenAI
+        self.client = OpenAI(
+            api_key=_clean_key("NARAROUTER_API_KEY"),
+            base_url=self.BASE_URL,
+        )
+
+    def _create(self, system, messages, temperature):
+        kwargs: dict = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": system}, *messages],
+            "temperature": temperature,
+            "max_tokens": 2048,
+        }
+        # Add reasoning_effort for reasoning models
+        if self.model in self.REASONING_MODELS:
+            reasoning = os.environ.get("NARAROUTER_REASONING_EFFORT", "medium").strip()
+            if reasoning:
+                kwargs["reasoning_effort"] = reasoning
+        resp = self.client.chat.completions.create(**kwargs)
         return (resp.choices[0].message.content or "",
                 resp.usage.total_tokens)
 
@@ -206,6 +269,7 @@ PROVIDERS: dict[str, type] = {
     "claude": ClaudeProvider,
     "anthropic": ClaudeProvider,
     "openai": OpenAIProvider,
+    "nararouter": NaraRouterProvider,
     "ollama": OllamaProvider,
 }
 

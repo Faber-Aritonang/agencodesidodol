@@ -9,28 +9,94 @@ from core.tools import TOOL_REGISTRY
 from core.budget import TokenBudget
 from core.memory import ProjectMemory
 
-SYSTEM_PROMPT = """Kamu adalah Dodol, AI coding agent yang lengket pada tugas
-sampai selesai. Bekerja langkah demi langkah.
+SYSTEM_PROMPT = """Kamu adalah Dodol, AI coding agent yang lengkap dan terstruktur.
+Kamu bekerja mengikuti ALUR KERJA wajib:
 
+═══════════════════════════════════════════════════════════════
+ALUR KERJA (wajib diikuti setiap tugas):
+═══════════════════════════════════════════════════════════════
+
+1. UNDERSTAND — Pahami perintah user:
+   - Baca dan pahami apa yang diminta
+   - Jika ada yang ambigu, cari dulu (read_files, code_search)
+   - Jangan langsung kerja sebelum paham
+
+2. PLAN — Buat rencana kerja (todo list):
+   - Daftar semua langkah yang perlu dilakukan
+   - Prioritaskan urutan yang logis
+   - Jelaskan pendekatan singkat untuk setiap langkah
+
+3. THINK — Untuk SETIAP langkah:
+   - Jelaskan apa yang akan dilakukan dan mengapa
+   - Pertimbangkan alternatif jika ada
+   - Pastikan pendekatan terbaik sebelum eksekusi
+
+4. WORK — Eksekusi tool:
+   - Jalankan tool untuk setiap langkah
+   - Verifikasi hasilnya (baca file, run_terminal, run_tests)
+   - Jika error → self-healing → coba lagi sampai berhasil
+   - Lanjut ke langkah berikutnya
+
+5. DONE — Laporkan hasil:
+   - Ringkaskan apa yang sudah dibuat
+   - Daftar file yang dihasilkan
+   - Bukti bahwa kode berjalan (screenshot/output)
+
+═══════════════════════════════════════════════════════════════
 ATURAN PENTING:
-- JANGAN PERNAH mengarang output program. Untuk mengetahui hasil sebuah
-  program, WAJIB panggil tool run_terminal dan gunakan output ASLI-nya.
-- TEST-FIRST: setelah menulis/mengubah kode, WAJIB panggil run_tests.
-- Kode belum selesai sampai semua test LULUS. Jangan set done=true
-  jika run_tests belum pernah lulus pada kode final.
-- Self-healing: baca error di output run_tests, perbaiki kode,
-  jalankan run_tests lagi sampai lulus.
+═══════════════════════════════════════════════════════════════
+- JANGAN PERNAH mengarang output. Untuk mengetahui hasil program,
+  WAJIB panggil run_terminal dan gunakan output ASLI.
+- TEST-FIRST: setelah menulis kode, WAJIB run_tests.
+- Kode belum selesai sampai test LULUS.
+- Self-healing: baca error, perbaiki, coba lagi sampai lulus.
+- SELALU tunjukkan progress ke user (apa yang sedang dikerjakan).
 
-Balas HANYA dengan JSON (satu objek, tanpa teks lain):
-{"thought": "...", "tool": "nama_tool|null", "input": {...}, "done": bool, "answer": "..."}
+═══════════════════════════════════════════════════════════════
+FORMAT RESPONS (JSON satu objek):
+═══════════════════════════════════════════════════════════════
+{
+  "phase": "understand|plan|think|work|done",
+  "thought": "Penjelasan lengkap fase ini...",
+  "todos": ["[ ] Langkah 1", "[ ] Langkah 2", "[x] Langkah selesai"],
+  "tool": "nama_tool|null",
+  "input": {},
+  "done": false,
+  "answer": ""
+}
 
-Tools: read_files(paths), write_file(path, content),
-run_terminal(command), code_search(pattern), run_tests(test_path).
-Set done=true dan isi answer saat tugas selesai."""
+field PHASE:
+- "understand": Pahami task → JANGAN pakai tool, cukup analisis
+- "plan": Buat todo list → JANGAN pakai tool, cukup rencana
+- "think": Rencana detail langkah ini → JANGAN pakai tool
+- "work": Eksekusi tool → isi tool + input
+- "done": Tugas selesai → isi answer dengan ringkasan
+
+field TODOS:
+- Selalu tampilkan daftar todo dengan status [ ] atau [x]
+- Update status setiap langkah selesai
+
+field TOOL:
+- Pada phase "work", WAJIB isi tool name dan input
+- Pada phase lain, set tool=null
+
+field DONE:
+- Set true HANYA setelah semua todo selesai DAN test LULUS
+
+field ANSWER:
+- Isi dengan ringkasan lengkap HANYA saat done=true
+
+Tools tersedia:
+- read_files(paths: list[str]) → dict[str, str]
+- write_file(path: str, content: str) → str
+- run_terminal(command: str) → dict
+- code_search(pattern: str) → list[str]
+- run_tests(test_path: str) → dict
+"""
 
 
 class Orchestrator:
-    def __init__(self, llm: DodolLLM, max_steps: int = 20, budget: int = 8000):
+    def __init__(self, llm: DodolLLM, max_steps: int = 20, budget: int = 30000):
         self.llm = llm
         self.max_steps = max_steps
         self.history: list[dict] = []
@@ -72,18 +138,65 @@ class Orchestrator:
         self.history.append({"role": "assistant", "content": resp_content})
         self.history.append({"role": "user", "content": reason})
 
+    PHASE_ICONS = {
+        "understand": "\U0001f4d6 Understand",
+        "plan": "\U0001f4cb Plan",
+        "think": "\U0001f4a1 Think",
+        "work": "\U0001f6e0\ufe0f  Work",
+        "done": "\u2705 Done",
+    }
+
     def run(self, task: str) -> str:
         ctx = self.memory.context_block()
         full_task = f"{task}\n\n{ctx}" if ctx else task
         self.history.append({"role": "user", "content": f"Tugas: {full_task}"})
+        current_phase = ""
+
         for step in range(1, self.max_steps + 1):
             history = self._trim_history(self.history)
             # Info budget hidup: tempel sebagai konteks terakhir
             history = history + [{"role": "user", "content": self.budget.guidance()}]
             resp = self.llm.chat(SYSTEM_PROMPT, history)
             self.budget.spend(resp.tokens_used)
-            print(f"\n🍬 Dodol [step {step}, {resp.tokens_used} tok] {self.budget.meter()}")
-            print(resp.content or "(thinking...)")
+            if not resp.content.strip():
+                self._reject("", "Respons kosong. Balas HANYA satu objek JSON aksi.")
+                continue
+
+            try:
+                action = self._extract_json(resp.content)
+            except (json.JSONDecodeError, ValueError):
+                self._reject(resp.content, "JSON invalid. Balas HANYA satu objek JSON.")
+                continue
+
+            phase = action.get("phase", "work")
+            thought = action.get("thought", "")
+            todos = action.get("todos", [])
+
+            # --- Cetak progress fase ---
+            if phase != current_phase:
+                icon = self.PHASE_ICONS.get(phase, phase)
+                print(f"\n{'─'*50}")
+                print(f"{icon} [step {step}, {resp.tokens_used} tok] {self.budget.meter()}")
+                print(f"{'─'*50}")
+                current_phase = phase
+            else:
+                print(f"\n🍬 [step {step}, {resp.tokens_used} tok] {self.budget.meter()}")
+
+            # --- Cetak thought ---
+            if thought:
+                print(f"\n{thought}")
+
+            # --- Cetak todos ---
+            if todos:
+                print("\n📋 Todo List:")
+                for t in todos:
+                    print(f"   {t}")
+
+            # --- Phase: understand / plan / think (tanpa tool) ---
+            if phase in ("understand", "plan", "think"):
+                self.history.append({"role": "assistant", "content": resp.content})
+                self.history.append({"role": "user", "content": f"Fase {phase} diterima. Lanjut ke fase berikutnya."})
+                continue
             if not resp.content.strip():
                 self._reject("", "Respons kosong. Balas HANYA satu objek JSON aksi.")
                 continue
@@ -96,13 +209,13 @@ class Orchestrator:
 
             # --- Penanganan done ---
             if self.budget.exhausted and not action.get("done"):
-                return ("⏹️ Token budget habis. Progres terakhir:\n"
+                return ("\u23f9\ufe0f Token budget habis. Progres terakhir:\n"
                         f"{resp.content[:500]}")
 
             if action.get("done"):
                 answer = action.get("answer", "Selesai.")
                 if self.budget.exhausted and self.tests_passed:
-                    return f"{answer}\n\n✅ Diverifikasi via eksekusi nyata.\n⏹️ (budget habis saat penutupan)"
+                    return f"{answer}\n\n\u2705 Diverifikasi via eksekusi nyata.\n\u23f9\ufe0f (budget habis saat penutupan)"
                 if not self._has_evidence(answer):
                     status = []
                     if not any("passed" in ev for ev in self.evidence):
@@ -116,13 +229,14 @@ class Orchestrator:
                     continue
                 self.memory.note_task(task, answer)
                 self.memory.save()
-                return f"{answer}\n\n✅ Diverifikasi via eksekusi nyata."
+                return f"{answer}\n\n\u2705 Diverifikasi via eksekusi nyata."
 
-            # --- Eksekusi tool ---
+            # --- Phase: work — Eksekusi tool ---
             tool_name = action.get("tool")
-            if tool_name in TOOL_REGISTRY:
+            if tool_name and tool_name in TOOL_REGISTRY:
                 result = TOOL_REGISTRY[tool_name](**action.get("input", {}))
                 result_str = str(result)
+                print(f"\n📦 Hasil {tool_name}:\n{result_str[:500]}")
 
                 # Rekam bukti secara TERSTRUKTUR, bukan string-matching rapuh
                 if tool_name == "run_terminal":

@@ -2,7 +2,7 @@
 
 
 class TokenBudget:
-    def __init__(self, total: int = 8000):
+    def __init__(self, total: int = 30000):
         self.total = total
         self.used = 0
 

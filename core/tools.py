@@ -2,14 +2,18 @@
 Sandbox: timeout + blokir command berbahaya."""
 
 import shlex
+import sys
 
 from core.sandbox import Sandbox
 
 _sandbox = Sandbox()
 
 from pathlib import Path
+import os
 
-PROJECT_ROOT = Path.cwd()
+# When running inside AppImage, cwd points to read-only squashfs.
+# Use DODOL_WORKDIR env var (set by AppRun) or fall back to cwd.
+PROJECT_ROOT = Path(os.environ.get("DODOL_WORKDIR", str(Path.cwd())))
 MAX_TIMEOUT = 60
 
 
@@ -52,7 +56,7 @@ TOOL_REGISTRY = {
 
 def run_tests(test_path: str = "tests/") -> dict:
     """Jalankan pytest dan kembalikan ringkasan lulus/gagal."""
-    out = run_terminal(f"python -m pytest {test_path} -x --tb=short -q", timeout=120)
+    out = run_terminal(f"{sys.executable} -m pytest {test_path} -x --tb=short -q", timeout=120)
     return {
         "status": out["status"],
         "output": out["output"][:3000],

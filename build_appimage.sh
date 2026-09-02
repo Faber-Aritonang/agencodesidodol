@@ -104,6 +104,10 @@ echo "🔧 Creating AppRun wrapper..."
 cat > "${APPDIR}/AppRun" << 'APPRUN'
 #!/bin/bash
 APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+
+# Simpan working directory asli user SEBELUM cd ke AppDir
+export DODOL_WORKDIR="${PWD}"
+
 export PYTHONPATH="${APPDIR}/opt/python3.12/lib/python3.12/site-packages:${APPDIR}/opt/dodol-agent"
 cd "${APPDIR}/opt/dodol-agent"
 
@@ -115,10 +119,10 @@ if [ -f "${ENV_FILE}" ]; then
     set +a
 fi
 
-# Load .env dari working directory
-if [ -f .env ]; then
+# Load .env dari working directory asli user
+if [ -f "${DODOL_WORKDIR}/.env" ]; then
     set -a
-    source .env
+    source "${DODOL_WORKDIR}/.env"
     set +a
 fi
 

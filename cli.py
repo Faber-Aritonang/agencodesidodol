@@ -10,7 +10,7 @@ def main():
         description="🍬 DodolAgent — sticky coding agent dengan token budget",
     )
     parser.add_argument("task", help="Tugas coding untuk Dodol")
-    parser.add_argument("--budget", type=int, default=8000)
+    parser.add_argument("--budget", type=int, default=30000)
     parser.add_argument("--max-steps", type=int, default=20)
     args = parser.parse_args()
 
