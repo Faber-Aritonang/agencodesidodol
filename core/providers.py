@@ -38,7 +38,17 @@ class BaseProvider(ABC):
         """Panggil API mentah. Return objek dengan .content dan token count."""
 
     def chat(self, system: str, messages: list[dict],
-             temperature: float = 0.2) -> LLMResponse:
+             temperature: float = 0.2, stream: bool = False) -> LLMResponse:
+        if stream:
+            return self._chat_stream(system, messages, temperature)
+        content, tokens = self._create_with_retry(system, messages, temperature)
+        self.total_tokens += tokens
+        return LLMResponse(content=content, tokens_used=tokens)
+
+    def _chat_stream(self, system: str, messages: list[dict],
+                     temperature: float) -> LLMResponse:
+        """Streaming chat — tampilkan token saat tiba."""
+        # Default: fallback ke non-streaming
         content, tokens = self._create_with_retry(system, messages, temperature)
         self.total_tokens += tokens
         return LLMResponse(content=content, tokens_used=tokens)
@@ -183,21 +193,44 @@ class NaraRouterProvider(BaseProvider):
             base_url=self.BASE_URL,
         )
 
-    def _create(self, system, messages, temperature):
+    def _build_kwargs(self, system, messages, temperature, stream=False):
         kwargs: dict = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, *messages],
             "temperature": temperature,
             "max_tokens": 2048,
+            "stream": stream,
         }
-        # Add reasoning_effort for reasoning models
         if self.model in self.REASONING_MODELS:
             reasoning = os.environ.get("NARAROUTER_REASONING_EFFORT", "medium").strip()
             if reasoning:
                 kwargs["reasoning_effort"] = reasoning
+        return kwargs
+
+    def _create(self, system, messages, temperature):
+        kwargs = self._build_kwargs(system, messages, temperature, stream=False)
         resp = self.client.chat.completions.create(**kwargs)
         return (resp.choices[0].message.content or "",
                 resp.usage.total_tokens)
+
+    def _chat_stream(self, system, messages, temperature):
+        """Streaming — tampilkan token saat tiba, kumpulkan full response."""
+        import sys
+        kwargs = self._build_kwargs(system, messages, temperature, stream=True)
+        stream = self.client.chat.completions.create(**kwargs)
+        content = ""
+        tokens = 0
+        print("   ", end="", flush=True)
+        for chunk in stream:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if delta and delta.content:
+                content += delta.content
+                print(delta.content, end="", flush=True)
+            if chunk.usage:
+                tokens = chunk.usage.total_tokens
+        print()  # newline setelah streaming selesai
+        self.total_tokens += tokens
+        return LLMResponse(content=content, tokens_used=tokens)
 
 
 # ───────────────────────── Ollama (lokal) ─────────────────
@@ -238,6 +271,9 @@ class ResilientProvider(BaseProvider):
 
     def _create(self, system, messages, temperature):
         return self.active._create(system, messages, temperature)
+
+    def _chat_stream(self, system, messages, temperature):
+        return self.active._chat_stream(system, messages, temperature)
 
     def _create_with_retry(self, system, messages, temperature,
                            max_attempts: int = 3):

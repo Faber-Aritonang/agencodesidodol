@@ -38,20 +38,19 @@ class Session:
             f"📊 Sesi ini:",
             f"   Task dieksekusi : {self.task_count}",
             f"   Total token     : {self.total_tokens}",
-            f"   Budget tersisa  : {agent.budget.remaining}/{self.budget_total} "
-            f"({agent.budget.pct_left:.0f}%)",
+            f"   Token terpakai : {agent.budget.used}",
         ]
         return "\n".join(lines)
 
 
 def main():
     provider = make_provider()
-    budget_total = 30000
-    agent = Orchestrator(provider, max_steps=20, budget=budget_total)
+    budget_total = 0  # 0 = unlimited
+    agent = Orchestrator(provider, max_steps=30, budget=budget_total)
     session = Session(budget_total)
 
     print(f"🟢 Dodol siap | model: {provider.model} | provider: {type(provider).__name__}")
-    print(f"💰 Token budget: {budget_total} | Max steps: 20")
+    print(f"💰 Token: unlimited | Max steps: 30")
     print(BANNER)
 
     while True:

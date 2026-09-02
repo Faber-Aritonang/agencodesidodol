@@ -2,7 +2,8 @@
 
 
 class TokenBudget:
-    def __init__(self, total: int = 30000):
+    def __init__(self, total: int = 0):
+        """total=0 berarti unlimited."""
         self.total = total
         self.used = 0
 
@@ -11,22 +12,31 @@ class TokenBudget:
 
     @property
     def remaining(self) -> int:
+        if self.total <= 0:
+            return 999999999
         return max(0, self.total - self.used)
 
     @property
     def pct_left(self) -> float:
+        if self.total <= 0:
+            return 100.0
         return self.remaining / self.total * 100 if self.total else 0.0
 
     @property
     def exhausted(self) -> bool:
+        if self.total <= 0:
+            return False
         return self.remaining <= 0
 
     @property
     def critical(self) -> bool:
-        """Budget menipis (<30%) — saatnya strategi hemat."""
+        if self.total <= 0:
+            return False
         return not self.exhausted and self.pct_left < 30
 
     def meter(self) -> str:
+        if self.total <= 0:
+            return f"🟢 ∞ unlimited | {self.used} tok used"
         bar_len = 20
         filled = round(bar_len * self.remaining / self.total)
         bar = "█" * filled + "░" * (bar_len - filled)
@@ -35,6 +45,8 @@ class TokenBudget:
 
     def guidance(self) -> str:
         """Instruksi dinamis untuk LLM berdasarkan kondisi budget."""
+        if self.total <= 0:
+            return "Bekerja tanpa batas token. Fokus pada kualitas hasil."
         if self.exhausted:
             return "BUDGET HABIS. Segera set done=true dengan ringkasan capaian."
         if self.critical:

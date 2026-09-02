@@ -7,7 +7,6 @@ set -euo pipefail
 # ═══════════════════════════════════════════════════════════════
 
 INSTALL_DIR="${HOME}/.local/bin"
-SCRIPT_PATH="${INSTALL_DIR}/dodol"
 AGENT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "🍬 Dodol Agent Installer"
@@ -17,7 +16,7 @@ echo "════════════════════════�
 mkdir -p "${INSTALL_DIR}"
 
 # ─── 2. Buat wrapper script ───
-cat > "${SCRIPT_PATH}" << WRAPPER
+cat > "${INSTALL_DIR}/dodol" << WRAPPER
 #!/bin/bash
 # Dodol Agent wrapper
 cd "${AGENT_DIR}"
@@ -34,7 +33,11 @@ fi
 exec python chat.py "\$@"
 WRAPPER
 
-chmod +x "${SCRIPT_PATH}"
+chmod +x "${INSTALL_DIR}/dodol"
+
+# Buat symlink 'dodol-agent' juga
+ln -sf "${INSTALL_DIR}/dodol" "${INSTALL_DIR}/dodol-agent"
+echo "✅ Command 'dodol' dan 'dodol-agent' dibuat di ${INSTALL_DIR}/"
 
 # ─── 3. Cek PATH ───
 if [[ ":$PATH:" != *":${INSTALL_DIR}:"* ]]; then
@@ -62,9 +65,10 @@ echo "════════════════════════�
 echo "✅ Instalasi selesai!"
 echo ""
 echo "🚀 Cara pakai:"
+echo "   dodol-agent"
+echo "   atau"
 echo "   dodol"
 echo ""
-echo "   Atau langsung:"
 echo "   python chat.py"
 echo ""
 echo "📋 Jika command 'dodol' belum dikenal, jalankan:"
