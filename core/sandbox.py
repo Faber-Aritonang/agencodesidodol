@@ -17,10 +17,11 @@ from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
 
-PROJECT_ROOT = Path.cwd()
-LOG_PATH = PROJECT_ROOT / "docs" / "exec_log.jsonl"
+# Use DODOL_WORKDIR if set (for AppImage compatibility), else cwd
+PROJECT_ROOT = Path(os.environ.get("DODOL_WORKDIR", str(Path.cwd())))
+LOG_PATH = Path.cwd() / "docs" / "exec_log.jsonl"
 
 # Pola destruktif — regex, tahan variasi whitespace & urutan flag
 BLACKLIST_PATTERNS = [
